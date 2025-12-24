@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA // Music Player</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(2vw, -5vh) rotate(2deg); }
+            66% { transform: translate(-1vw, 3vh) rotate(-1deg); }
+        }
+        
+        .animate-aura {
+            animation: float 18s infinite ease-in-out;
+        }
+
+        @keyframes pulse-bar {
+            0%, 100% { height: 20%; opacity: 0.5; }
+            50% { height: 80%; opacity: 1; }
+        }
+
+        .playing .bar-anim {
+            animation: pulse-bar 1s infinite ease-in-out;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-hover:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .progress-bar {
+            transition: width 0.1s linear;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Hide YouTube iframe but keep it functional */
+        #youtube-player {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Cat Animations */
+        .cat-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 180px;
+            height: 180px;
+            z-index: 50;
+            cursor: pointer;
+            transition: transform 0.3s ease, bottom 0.3s ease, right 0.3s ease;
+            will-change: transform;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .cat-container:hover {
+            transform: scale(1.15);
+        }
+
+        .cat-container.following {
+            transition: transform 0.1s ease, bottom 0.1s ease, right 0.1s ease;
+        }
+
+        .cat-container.rolling {
+            animation: catRoll 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
+        }
+
+        @keyframes catRoll {
+            0% { transform: translateX(0) translateY(0) rotate(0deg) scale(1); }
+            12.5% { transform: translateX(25px) translateY(-10px) rotate(45deg) scale(0.97); }
+            25% { transform: translateX(50px) translateY(-20px) rotate(90deg) scale(0.94); }
+            37.5% { transform: translateX(75px) translateY(-10px) rotate(135deg) scale(0.91); }
+            50% { transform: translateX(100px) translateY(0) rotate(180deg) scale(0.88); }
+            62.5% { transform: translateX(75px) translateY(10px) rotate(225deg) scale(0.91); }
+            75% { transform: translateX(50px) translateY(20px) rotate(270deg) scale(0.94); }
+            87.5% { transform: translateX(25px) translateY(10px) rotate(315deg) scale(0.97); }
+            100% { transform: translateX(0) translateY(0) rotate(360deg) scale(1); }
+        }
+
+        .cat-container.rolling-around {
+            animation: catRollAround 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            will-change: transform;
+        }
+
+        @keyframes catRollAround {
+            0% { transform: rotate(0deg) translateX(0) translateY(0) scale(1); }
+            12.5% { transform: rotate(45deg) translateX(20px) translateY(-15px) scale(0.98); }
+            25% { transform: rotate(90deg) translateX(35px) translateY(-30px) scale(0.96); }
+            37.5% { transform: rotate(135deg) translateX(20px) translateY(-40px) scale(0.94); }
+            50% { transform: rotate(180deg) translateX(0) translateY(-45px) scale(0.92); }
+            62.5% { transform: rotate(225deg) translateX(-20px) translateY(-40px) scale(0.94); }
+            75% { transform: rotate(270deg) translateX(-35px) translateY(-30px) scale(0.96); }
+            87.5% { transform: rotate(315deg) translateX(-20px) translateY(-15px) scale(0.98); }
+            100% { transform: rotate(360deg) translateX(0) translateY(0) scale(1); }
+        }
+
+        .cat-svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        /* Cat Idle Animation */
+        @keyframes catIdle {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-5px) rotate(2deg); }
+        }
+
+        .cat-idle {
+            animation: catIdle 3s ease-in-out infinite;
+        }
+
+        /* Cat Dancing Animation */
+        @keyframes catDance {
+            0%, 100% { transform: translateY(0) rotate(-5deg) scale(1); }
+            25% { transform: translateY(-10px) rotate(5deg) scale(1.05); }
+            50% { transform: translateY(-5px) rotate(-5deg) scale(1); }
+            75% { transform: translateY(-10px) rotate(5deg) scale(1.05); }
+        }
+
+        .cat-dancing {
+            animation: catDance 0.6s ease-in-out infinite;
+        }
+
+        /* Cat Happy Animation */
+        @keyframes catHappy {
+            0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+            25% { transform: translateY(-8px) rotate(-3deg) scale(1.1); }
+            50% { transform: translateY(-12px) rotate(3deg) scale(1.15); }
+            75% { transform: translateY(-8px) rotate(-3deg) scale(1.1); }
+        }
+
+        .cat-happy {
+            animation: catHappy 1s ease-in-out infinite;
+        }
+
+        /* Cat Sad Animation */
+        @keyframes catSad {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(3px) rotate(-2deg); }
+        }
+
+        .cat-sad {
+            animation: catSad 2s ease-in-out infinite;
+            opacity: 0.7;
+        }
+
+        /* Cat Depressed Animation */
+        @keyframes catDepressed {
+            0%, 100% { transform: translateY(5px) rotate(-1deg); }
+            50% { transform: translateY(8px) rotate(1deg); }
+        }
+
+        .cat-depressed {
+            animation: catDepressed 3s ease-in-out infinite;
+            opacity: 0.5;
+            filter: grayscale(0.3);
+        }
+
+        /* Cat Excited Animation */
+        @keyframes catExcited {
+            0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+            33% { transform: translateY(-15px) rotate(-10deg) scale(1.2); }
+            66% { transform: translateY(-15px) rotate(10deg) scale(1.2); }
+        }
+
+        .cat-excited {
+            animation: catExcited 0.4s ease-in-out infinite;
+        }
+
+        /* Cat Sleeping Animation */
+        @keyframes catSleep {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(2px) rotate(1deg); }
+        }
+
+        .cat-sleeping {
+            animation: catSleep 3s ease-in-out infinite;
+            opacity: 0.6;
+        }
+
+        /* Cat Tail Animation */
+        @keyframes tailWag {
+            0%, 100% { transform: rotate(-10deg); }
+            50% { transform: rotate(10deg); }
+        }
+
+        .cat-playing .cat-tail {
+            animation: tailWag 0.5s ease-in-out infinite;
+            transform-origin: 20px 15px;
+        }
+
+        /* Cat Ears Animation */
+        @keyframes earTwitch {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(-5deg); }
+        }
+
+        .cat-listening .cat-ear {
+            animation: earTwitch 2s ease-in-out infinite;
+        }
+
+        .cat-listening .cat-ear-right {
+            animation: earTwitch 2s ease-in-out infinite;
+            animation-delay: 0.1s;
+        }
+
+        /* Cat Eyes Blink */
+        @keyframes blink {
+            0%, 90%, 100% { transform: scaleY(1); }
+            95% { transform: scaleY(0.1); }
+        }
+
+        .cat-eye {
+            animation: blink 3s ease-in-out infinite;
+        }
+
+        .cat-eye-right {
+            animation: blink 3s ease-in-out infinite;
+            animation-delay: 0.1s;
+        }
+
+        /* Cat Speech Bubble */
+        .cat-speech {
+            position: absolute;
+            bottom: 200px;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(139, 92, 246, 0.5);
+            border-radius: 16px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: white;
+            white-space: nowrap;
+            opacity: 0;
+            transform: translateY(10px) scale(0.9);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            max-width: 250px;
+        }
+
+        .cat-speech.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .cat-speech::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            right: 20px;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid rgba(0, 0, 0, 0.8);
+        }
+
+        /* Cat Heart Particles */
+        @keyframes heartFloat {
+            0% { transform: translateY(0) scale(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.5) rotate(360deg); opacity: 0; }
+        }
+
+        .cat-heart {
+            position: absolute;
+            font-size: 24px;
+            animation: heartFloat 1.5s ease-out forwards;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* Cat Star Particles */
+        @keyframes starFloat {
+            0% { transform: translateY(0) scale(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-60px) scale(1.2) rotate(720deg); opacity: 0; }
+        }
+
+        .cat-star {
+            position: absolute;
+            font-size: 20px;
+            animation: starFloat 2s ease-out forwards;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* Cat Sparkle Effect */
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+
+        .cat-sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            animation: sparkle 0.6s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        /* Cat Glow Effect */
+        .cat-container.glow {
+            filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.8)) drop-shadow(0 0 40px rgba(167, 139, 250, 0.6));
+        }
+
+        /* Cat Bounce Effect */
+        @keyframes catBounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-30px) scale(1.1); }
+        }
+
+        .cat-container.bouncing {
+            animation: catBounce 0.6s ease-in-out;
+        }
+
+        /* Cat Spin Effect */
+        @keyframes catSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .cat-container.spinning {
+            animation: catSpin 0.8s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-[#020202] text-white overflow-hidden" 
+      x-data="playApp()" 
+      x-init="init()">
+
+    <!-- YouTube IFrame API -->
+    <div id="youtube-player"></div>
+    <!-- Client-side Ad Blocker -->
+    <script src="/static/ad-blocker.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <div class="fixed inset-0 z-0">
+        <div class="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] bg-purple-600/20 rounded-full blur-[120px] animate-aura"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] bg-blue-600/15 rounded-full blur-[120px] animate-aura" style="animation-delay: -9s;"></div>
+    </div>
+
+    <!-- Interactive Cat -->
+    <div class="cat-container" 
+         x-data="catEmotion()"
+         :class="[catState, following ? 'following' : '', isRolling ? 'rolling' : '', isRollingAround ? 'rolling-around' : '', isGlowing ? 'glow' : '', isBouncing ? 'bouncing' : '', isSpinning ? 'spinning' : '']"
+         :style="`bottom: ${catY}px; right: ${catX}px;`"
+         @click="interactWithCat()"
+         @dblclick="rollCat()"
+         @mouseenter="showSpeech('Meow! 🐱')"
+         @mouseleave="hideSpeech()"
+         @mousemove="handleMouseMove($event)"
+         @mousedown="startDrag($event)"
+         @mouseup="stopDrag()"
+         @mouseleave="stopDrag()"
+         draggable="false">
+        <div class="cat-speech" :class="{ 'show': speechVisible }" x-text="speechText"></div>
+        <svg class="cat-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Cat Body -->
+            <ellipse cx="50" cy="65" rx="25" ry="20" fill="#8B5CF6" class="cat-body" />
+            <ellipse cx="50" cy="60" rx="22" ry="18" fill="#A78BFA" />
+            
+            <!-- Cat Head -->
+            <circle cx="50" cy="35" r="20" fill="#8B5CF6" />
+            <circle cx="50" cy="32" r="18" fill="#A78BFA" />
+            
+            <!-- Cat Ears -->
+            <polygon points="35,20 40,10 45,20" fill="#8B5CF6" class="cat-ear" />
+            <polygon points="55,20 60,10 65,20" fill="#8B5CF6" class="cat-ear-right" />
+            <polygon points="36,18 40,12 44,18" fill="#A78BFA" />
+            <polygon points="56,18 60,12 64,18" fill="#A78BFA" />
+            
+            <!-- Cat Eyes -->
+            <ellipse cx="45" cy="32" rx="4" ry="6" fill="#1F2937" class="cat-eye" />
+            <ellipse cx="55" cy="32" rx="4" ry="6" fill="#1F2937" class="cat-eye-right" />
+            <circle cx="45" cy="30" r="1.5" fill="#FBBF24" />
+            <circle cx="55" cy="30" r="1.5" fill="#FBBF24" />
+            
+            <!-- Cat Nose -->
+            <polygon points="50,38 48,42 52,42" fill="#EC4899" />
+            
+            <!-- Cat Mouth -->
+            <path d="M 50 42 Q 46 45 44 48" stroke="#1F2937" stroke-width="1.5" fill="none" stroke-linecap="round" />
+            <path d="M 50 42 Q 54 45 56 48" stroke="#1F2937" stroke-width="1.5" fill="none" stroke-linecap="round" />
+            
+            <!-- Cat Tail -->
+            <path d="M 25 65 Q 15 55 10 50 Q 5 45 8 40 Q 10 38 12 42" 
+                  stroke="#8B5CF6" 
+                  stroke-width="4" 
+                  fill="none" 
+                  stroke-linecap="round"
+                  class="cat-tail" />
+            
+            <!-- Cat Paws -->
+            <ellipse cx="40" cy="80" rx="6" ry="8" fill="#8B5CF6" />
+            <ellipse cx="60" cy="80" rx="6" ry="8" fill="#8B5CF6" />
+            
+            <!-- Emotion Indicators -->
+            <template x-if="emotion === 'happy'">
+                <g>
+                    <circle cx="35" cy="25" r="3" fill="#FBBF24" opacity="0.8">
+                        <animate attributeName="opacity" values="0.8;0.2;0.8" dur="1s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="65" cy="25" r="3" fill="#FBBF24" opacity="0.8">
+                        <animate attributeName="opacity" values="0.8;0.2;0.8" dur="1s" repeatCount="indefinite" />
+                    </circle>
+                </g>
+            </template>
+            
+            <template x-if="emotion === 'sad'">
+                <g>
+                    <path d="M 45 35 Q 43 37 45 39" stroke="#60A5FA" stroke-width="1.5" fill="none" />
+                    <path d="M 55 35 Q 57 37 55 39" stroke="#60A5FA" stroke-width="1.5" fill="none" />
+                </g>
+            </template>
+            
+            <template x-if="emotion === 'depressed'">
+                <g>
+                    <path d="M 45 35 Q 43 37 45 39" stroke="#4B5563" stroke-width="2" fill="none" opacity="0.8" />
+                    <path d="M 55 35 Q 57 37 55 39" stroke="#4B5563" stroke-width="2" fill="none" opacity="0.8" />
+                    <circle cx="50" cy="45" r="2" fill="#6B7280" opacity="0.6">
+                        <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2s" repeatCount="indefinite" />
+                    </circle>
+                </g>
+            </template>
+            
+            <template x-if="emotion === 'excited'">
+                <g>
+                    <circle cx="50" cy="20" r="2" fill="#EF4444">
+                        <animate attributeName="r" values="2;4;2" dur="0.5s" repeatCount="indefinite" />
+                        <animate attributeName="opacity" values="1;0.5;1" dur="0.5s" repeatCount="indefinite" />
+                    </circle>
+                </g>
+            </template>
+        </svg>
+    </div>
+
+    <div class="relative z-10 h-screen flex flex-col">
+        
+        <nav class="flex justify-between items-center p-6 md:p-8">
+            <a href="/" class="text-2xl font-black tracking-tighter italic hover:opacity-80 transition-opacity">AURA.</a>
+            <div class="glass px-4 py-2 rounded-full text-xs font-mono tracking-widest uppercase opacity-70">
+                <span x-text="playing ? '▶ Playing' : '⏸ Paused'"></span>
+            </div>
+        </nav>
+
+        <main class="flex-1 flex flex-col items-center justify-center px-6 text-center overflow-y-auto pb-32">
+            
+            <!-- Album Art -->
+            <div class="mb-8 fade-in" x-show="currentSong">
+                <div class="w-64 h-64 md:w-80 md:h-80 rounded-2xl overflow-hidden shadow-2xl glass border-2 border-white/10"
+                     :class="playing ? 'animate-pulse' : ''">
+                    <img :src="currentSong?.song?.image || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23999\'%3E%3Cpath d=\'M9 18V5l12-2v13\'/%3E%3Ccircle cx=\'6\' cy=\'18\' r=\'3\'/%3E%3Ccircle cx=\'18\' cy=\'16\' r=\'3\'/%3E%3C/svg%3E'"
+                         :alt="currentSong?.song?.title"
+                         class="w-full h-full object-cover">
+                </div>
+            </div>
+
+            <!-- Song Info -->
+            <div class="mb-8 fade-in" x-show="currentSong">
+                <h2 class="text-3xl md:text-4xl font-bold mb-2" x-text="currentSong?.song?.title || 'No song selected'"></h2>
+                <p class="text-lg text-gray-400 mb-1" x-text="currentSong?.song?.artists?.join(', ') || 'Unknown Artist'"></p>
+                <p class="text-sm text-gray-500" x-text="currentSong?.song?.album || ''"></p>
+            </div>
+
+            <!-- Visualizer -->
+            <div class="mb-8">
+                <div class="flex items-end justify-center space-x-1 h-16 md:h-20" :class="{ 'playing': playing }">
+                    <template x-for="i in 20">
+                        <div class="w-1 md:w-1.5 bg-gradient-to-t from-indigo-500 to-rose-500 rounded-full bar-anim" 
+                             :style="`animation-delay: ${i * 0.05}s; height: ${playing ? '100%' : '20%'}`"></div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full max-w-md mb-8" x-show="currentSong">
+                <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+                    <span x-text="formatTime(currentTime)"></span>
+                    <span x-text="formatTime(duration)"></span>
+                </div>
+                <div class="h-1 bg-white/10 rounded-full overflow-hidden cursor-pointer" @click="seekTo($event)">
+                    <div class="h-full bg-gradient-to-r from-indigo-500 to-rose-500 progress-bar" 
+                         :style="`width: ${progressPercent}%`"></div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex items-center justify-center space-x-4 mb-8">
+                <button @click="previousSong()" 
+                        class="glass p-3 rounded-full hover:bg-white/10 transition-all active:scale-95"
+                        :disabled="recommendations.length === 0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.334 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"/>
+                    </svg>
+                </button>
+                
+                <button @click="togglePlay()" 
+                        class="glass p-6 rounded-full hover:bg-white/10 transition-all active:scale-95 relative group">
+                    <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 to-rose-500 rounded-full opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                    <template x-if="!playing">
+                        <svg class="w-8 h-8 fill-white relative z-10" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </template>
+                    <template x-if="playing">
+                        <svg class="w-8 h-8 fill-white relative z-10" viewBox="0 0 24 24">
+                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                        </svg>
+                    </template>
+                </button>
+                
+                <button @click="nextSong()" 
+                        class="glass p-3 rounded-full hover:bg-white/10 transition-all active:scale-95"
+                        :disabled="recommendations.length === 0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Explanation -->
+            <div class="glass p-6 rounded-2xl max-w-md mb-6" x-show="currentSong?.explanation">
+                <p class="text-xs text-gray-400 mb-2 uppercase tracking-widest">Why Recommended</p>
+                <p class="text-sm leading-relaxed" x-text="currentSong?.explanation?.text || ''"></p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <button @click="submitFeedback('like')" 
+                        class="glass px-6 py-3 rounded-full text-sm hover:bg-rose-500/20 transition-all active:scale-95 flex items-center space-x-2"
+                        :disabled="!currentSong">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                    </svg>
+                    <span>Like</span>
+                </button>
+                
+                <button @click="submitFeedback('skip')" 
+                        class="glass px-6 py-3 rounded-full text-sm hover:bg-gray-600/20 transition-all active:scale-95 flex items-center space-x-2"
+                        :disabled="!currentSong">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    <span>Skip</span>
+                </button>
+
+                <a :href="currentSong?.platform_links?.spotify" 
+                   target="_blank"
+                   class="glass px-6 py-3 rounded-full text-sm hover:bg-green-500/20 transition-all active:scale-95 flex items-center space-x-2"
+                   x-show="currentSong">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.281c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.42 1.56-.299.421-1.02.599-1.559.3z"/>
+                    </svg>
+                    <span>Open in Spotify</span>
+                </a>
+            </div>
+
+            <!-- Queue -->
+            <div class="mt-8 w-full max-w-2xl" x-show="recommendations.length > 1">
+                <p class="text-xs text-gray-500 uppercase tracking-widest mb-4 text-left">Up Next</p>
+                <div class="space-y-2 max-h-48 overflow-y-auto">
+                    <template x-for="(rec, index) in recommendations.slice(1, 6)" :key="index">
+                        <div @click="playSong(rec)"
+                             class="glass p-3 rounded-lg cursor-pointer hover:bg-white/5 transition-all flex items-center space-x-3"
+                             :class="currentSong?.recommendation_id === rec.recommendation_id ? 'ring-2 ring-indigo-500' : ''">
+                            <img :src="rec.song?.image || ''" 
+                                 :alt="rec.song?.title"
+                                 class="w-12 h-12 rounded object-cover">
+                            <div class="flex-1 min-w-0 text-left">
+                                <p class="font-medium truncate" x-text="rec.song?.title"></p>
+                                <p class="text-xs text-gray-400 truncate" x-text="rec.song?.artists?.join(', ')"></p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div x-show="!currentSong && !loading" class="text-center py-20">
+                <svg class="w-20 h-20 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                </svg>
+                <p class="text-gray-500 mb-2 text-lg">No song selected</p>
+                <p class="text-sm text-gray-600 mb-6">Get recommendations to start playing</p>
+                <a href="/" class="glass px-6 py-3 rounded-full hover:bg-white hover:text-black transition-all active:scale-95 inline-block">
+                    Get Recommendations
+                </a>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Auto-detect API URL
+        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:8000/api/v1'
+            : window.location.origin + '/api/v1';
+        
+        let ytPlayer = null;
+        let ytApiReady = false;
+
+        // YouTube IFrame API callback
+        function onYouTubeIframeAPIReady() {
+            ytApiReady = true;
+            if (window.playAppInstance) {
+                window.playAppInstance.initPlayer();
+            }
+        }
+
+        function playApp() {
+            return {
+                playing: false,
+                currentSong: null,
+                recommendations: [],
+                currentTime: 0,
+                duration: 0,
+                progressPercent: 0,
+                loading: true,
+                userId: localStorage.getItem('aura_user_id') || 'user_' + Math.random().toString(36).substr(2, 9),
+                adMonitoringInterval: null,
+
+                init() {
+                    localStorage.setItem('aura_user_id', this.userId);
+                    window.playAppInstance = this;
+                    
+                    // Check if song ID is in URL
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const songId = urlParams.get('song');
+                    
+                    if (songId) {
+                        this.loadSongFromId(songId);
+                    } else {
+                        this.loadRecommendations();
+                    }
+                    
+                    // Initialize YouTube player when API is ready
+                    if (ytApiReady) {
+                        this.initPlayer();
+                    }
+                    
+                    // Update progress every second
+                    setInterval(() => this.updateProgress(), 1000);
+                },
+
+                initPlayer() {
+                    if (ytPlayer) return;
+                    
+                    // Create player with nocookie domain (fewer ads)
+                    // We'll override the embed URL to use nocookie domain
+                    ytPlayer = new YT.Player('youtube-player', {
+                        height: '1',
+                        width: '1',
+                        playerVars: {
+                            'autoplay': 0,
+                            'controls': 0,
+                            'disablekb': 1,
+                            'enablejsapi': 1,
+                            'fs': 0,
+                            'iv_load_policy': 3,
+                            'modestbranding': 1,
+                            'playsinline': 1,
+                            'rel': 0,
+                            'cc_load_policy': 0,  // Don't load captions
+                            'loop': 0,
+                            'mute': 0,
+                            'start': 0,
+                            // Ad blocking parameters
+                            'origin': window.location.origin,
+                            'widget_referrer': window.location.origin
+                        },
+                        events: {
+                            'onReady': (event) => {
+                                console.log('YouTube player ready');
+                            },
+                            'onStateChange': (event) => {
+                                if (event.data === YT.PlayerState.PLAYING) {
+                                    this.playing = true;
+                                    this.syncCatState();
+                                    
+                                    // Start aggressive ad monitoring
+                                    this.startAdMonitoring();
+                                    
+                                    // Immediate ad detection
+                                    setTimeout(() => this.detectAndSkipAds(), 500);
+                                    setTimeout(() => this.detectAndSkipAds(), 1500);
+                                    setTimeout(() => this.detectAndSkipAds(), 3000);
+                                } else if (event.data === YT.PlayerState.PAUSED) {
+                                    this.playing = false;
+                                    this.syncCatState();
+                                    this.stopAdMonitoring();
+                                } else if (event.data === YT.PlayerState.ENDED) {
+                                    this.playing = false;
+                                    this.syncCatState();
+                                    this.stopAdMonitoring();
+                                    this.nextSong();
+                                } else if (event.data === YT.PlayerState.CUED) {
+                                    // Video is cued (often happens before ads)
+                                    this.detectAndSkipAds();
+                                } else if (event.data === YT.PlayerState.ERROR) {
+                                    console.error('YouTube player error - video may be unavailable');
+                                    this.stopAdMonitoring();
+                                    // Try to skip to next song if current one fails
+                                    if (this.currentSong) {
+                                        alert(`Unable to play "${this.currentSong.song?.title || 'this song'}". Skipping to next song.`);
+                                    this.nextSong();
+                                    }
+                                }
+                            },
+                            'onError': (event) => {
+                                console.error('YouTube player error code:', event.data);
+                                // Error codes: 2=invalid video, 5=HTML5 error, 100=video not found, 101/150=not allowed to embed
+                                const errorMessages = {
+                                    2: 'Invalid video parameter',
+                                    5: 'HTML5 player error',
+                                    100: 'Video not found',
+                                    101: 'Video not allowed to be played in embedded players',
+                                    150: 'Video not allowed to be played in embedded players'
+                                };
+                                const errorMsg = errorMessages[event.data] || 'Unknown error';
+                                console.error('YouTube error:', errorMsg);
+                                
+                                // For invalid video parameter (error 2), try to refetch video ID
+                                if (event.data === 2 && this.currentSong && !this.currentSong._retryAttempted) {
+                                    console.log('Invalid video ID detected, attempting to refetch...');
+                                    this.currentSong._retryAttempted = true;
+                                    this.currentSong.youtube_video_id = null;
+                                    if (this.currentSong.song) {
+                                        this.currentSong.song.youtube_video_id = null;
+                                    }
+                                    
+                                    // Refetch video ID with a slight delay
+                                    setTimeout(async () => {
+                                        await this.fetchYouTubeVideoId(this.currentSong);
+                                        const newVideoId = this.currentSong.youtube_video_id || this.currentSong.song?.youtube_video_id;
+                                        if (newVideoId) {
+                                            console.log('Retrying with new video ID:', newVideoId);
+                                            this.loadSong(this.currentSong);
+                                        } else {
+                                            // If still no valid video ID, skip to next
+                                            alert(`Unable to find a valid YouTube video for "${this.currentSong.song?.title || 'this song'}". Skipping to next song.`);
+                                            this.nextSong();
+                                        }
+                                    }, 1000);
+                                } else {
+                                    // For other errors or if retry already attempted, skip to next song
+                                    if (this.currentSong) {
+                                        alert(`Unable to play "${this.currentSong.song?.title || 'this song'}": ${errorMsg}. Skipping to next song.`);
+                                        this.nextSong();
+                                    }
+                                }
+                            }
+                        }
+                    });
+                },
+
+                async loadRecommendations(preserveCurrentSong = false, genre = null) {
+                    this.loading = true;
+                    try {
+                        // Build URL with optional genre parameter
+                        let url = `${API_BASE}/recommendations?user_id=${this.userId}&limit=10`;
+                        if (genre) {
+                            url += `&genre=${encodeURIComponent(genre)}`;
+                        }
+                        
+                        const response = await fetch(url);
+                        const data = await response.json();
+                        if (data.recommendations && data.recommendations.length > 0) {
+                            this.recommendations = data.recommendations;
+                            // Only set currentSong if we're not preserving it (i.e., when loading initial recommendations)
+                            if (!preserveCurrentSong) {
+                            this.currentSong = this.recommendations[0];
+                            this.loadSong(this.currentSong);
+                                this.syncCatState();
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error loading recommendations:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async loadSongFromId(songId) {
+                    this.loading = true;
+                    try {
+                        // Check if songId is a JSON string (from search results)
+                        let songData = null;
+                        try {
+                            songData = JSON.parse(decodeURIComponent(songId));
+                            // If parsing succeeds, it's a song object from search
+                            if (songData.title) {
+                                // Create a recommendation-like object from the song data
+                                const songObj = {
+                                    recommendation_id: `search_${Date.now()}`,
+                                    song: {
+                                        title: songData.title,
+                                        artists: songData.artists || [],
+                                        image: songData.image || '',
+                                        album: songData.album || '',
+                                        genre: songData.genre || [],
+                                        youtube_video_id: songData.youtube_video_id || null
+                                    },
+                                    youtube_video_id: songData.youtube_video_id || null
+                                };
+                                
+                                // Fetch YouTube video ID if not present
+                                if (!songObj.youtube_video_id && !songObj.song.youtube_video_id) {
+                                    await this.fetchYouTubeVideoId(songObj);
+                                }
+                                
+                                this.currentSong = songObj;
+                                this.loadSong(songObj);
+                                this.syncCatState();
+                                
+                                // Extract genre from the searched song
+                                const songGenres = songObj.song?.genre || songData.genre || [];
+                                const genreParam = songGenres.length > 0 ? songGenres.join(',') : null;
+                                
+                                // Load recommendations for queue (preserve current song) with genre filter
+                                await this.loadRecommendations(true, genreParam);
+                                
+                                // Insert the searched song at the beginning of recommendations queue
+                                if (this.recommendations.length > 0) {
+                                    this.recommendations.unshift(songObj);
+                                } else {
+                                    this.recommendations = [songObj];
+                                }
+                                return;
+                            }
+                        } catch (e) {
+                            // Not a JSON string, treat as recommendation_id
+                        }
+                        
+                        // Try to find in recommendations
+                        const response = await fetch(`${API_BASE}/recommendations?user_id=${this.userId}&limit=50`);
+                        const data = await response.json();
+                        if (data.recommendations) {
+                            this.recommendations = data.recommendations;
+                            const song = data.recommendations.find(r => r.recommendation_id === songId);
+                            if (song) {
+                                this.currentSong = song;
+                                // Fetch YouTube video ID if not present
+                                if (!song.youtube_video_id && !song.song?.youtube_video_id) {
+                                    await this.fetchYouTubeVideoId(song);
+                                }
+                                this.loadSong(song);
+                            } else if (data.recommendations.length > 0) {
+                                this.currentSong = data.recommendations[0];
+                                if (!this.currentSong.youtube_video_id && !this.currentSong.song?.youtube_video_id) {
+                                    await this.fetchYouTubeVideoId(this.currentSong);
+                                }
+                                this.loadSong(this.currentSong);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error loading song:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                async fetchYouTubeVideoId(song, retryCount = 0) {
+                    try {
+                        const title = song.song?.title || song.title;
+                        const artists = song.song?.artists || song.artists || [];
+                        const artistsStr = Array.isArray(artists) ? artists.join(',') : artists;
+                        
+                        if (!title) return;
+                        
+                        const response = await fetch(
+                            `${API_BASE}/songs/youtube-video-id?title=${encodeURIComponent(title)}&artists=${encodeURIComponent(artistsStr)}`
+                        );
+                        const data = await response.json();
+                        
+                        if (data.youtube_video_id) {
+                            // Validate video ID format
+                            const videoId = data.youtube_video_id.trim();
+                            if (videoId.length === 11 && /^[a-zA-Z0-9_-]+$/.test(videoId)) {
+                            // Update song object with video ID
+                            if (song.song) {
+                                    song.song.youtube_video_id = videoId;
+                            }
+                                song.youtube_video_id = videoId;
+                            
+                            // If this is the current song and player is ready, load it
+                            if (this.currentSong === song && ytPlayer) {
+                                this.loadSong(song);
+                            }
+                            } else {
+                                console.error('Invalid video ID format:', videoId);
+                                // Retry if we haven't retried too many times
+                                if (retryCount < 2) {
+                                    setTimeout(() => this.fetchYouTubeVideoId(song, retryCount + 1), 1000);
+                                }
+                            }
+                        } else if (retryCount < 2) {
+                            // Retry if no video ID found
+                            setTimeout(() => this.fetchYouTubeVideoId(song, retryCount + 1), 1000);
+                        }
+                    } catch (error) {
+                        console.error('Error fetching YouTube video ID:', error);
+                        // Retry on error
+                        if (retryCount < 2) {
+                            setTimeout(() => this.fetchYouTubeVideoId(song, retryCount + 1), 1000);
+                        }
+                    }
+                },
+
+                async loadSong(song) {
+                    if (!song) return;
+                    
+                    // Ensure we have a video ID
+                    let videoId = song.youtube_video_id || song.song?.youtube_video_id;
+                    
+                    if (!videoId) {
+                        // Try to fetch it
+                        await this.fetchYouTubeVideoId(song);
+                        videoId = song.youtube_video_id || song.song?.youtube_video_id;
+                    }
+                    
+                    if (!videoId) {
+                        console.error('No video ID found for song:', song.song?.title || song.title);
+                        alert(`Could not find YouTube video for "${song.song?.title || song.title}". Please try another song.`);
+                        return;
+                    }
+                    
+                    if (!ytPlayer) {
+                        console.error('YouTube player not ready');
+                        // Wait a bit and try again
+                        setTimeout(() => this.loadSong(song), 500);
+                        return;
+                    }
+                    
+                    // Validate video ID before loading
+                    if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+                        console.error('Invalid video ID format:', videoId);
+                        alert(`Invalid video ID for "${song.song?.title || song.title}". Please try another song.`);
+                        return;
+                    }
+                    
+                    try {
+                        // Stop any existing ad monitoring
+                        this.stopAdMonitoring();
+                        
+                        // Force use of nocookie domain for fewer ads
+                        const playerElement = document.getElementById('youtube-player');
+                        if (playerElement) {
+                            const iframe = playerElement.querySelector('iframe');
+                            if (iframe && iframe.src) {
+                                // Replace youtube.com with youtube-nocookie.com
+                                iframe.src = iframe.src.replace('youtube.com', 'youtube-nocookie.com');
+                            }
+                        }
+                        
+                        ytPlayer.loadVideoById(videoId);
+                        this.playing = false;
+                        this.currentTime = 0;
+                        this.duration = 0;
+                        
+                        // Start monitoring for ads after video loads
+                        setTimeout(() => {
+                            if (ytPlayer && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+                                this.startAdMonitoring();
+                            }
+                        }, 1000);
+                    } catch (error) {
+                        console.error('Error loading video:', error);
+                        // Try to refetch video ID if loading fails
+                        if (!song._retryAttempted) {
+                            song._retryAttempted = true;
+                            console.log('Retrying with new video ID...');
+                            await this.fetchYouTubeVideoId(song);
+                            const newVideoId = song.youtube_video_id || song.song?.youtube_video_id;
+                            if (newVideoId && newVideoId !== videoId) {
+                                setTimeout(() => this.loadSong(song), 500);
+                            }
+                        }
+                    }
+                },
+
+                playSong(song) {
+                    // Stop any existing ad monitoring
+                    this.stopAdMonitoring();
+                    
+                    this.currentSong = song;
+                    this.loadSong(song);
+                    this.syncCatState();
+                },
+
+                togglePlay() {
+                    if (!ytPlayer || !this.currentSong) return;
+                    
+                    if (this.playing) {
+                        ytPlayer.pauseVideo();
+                    } else {
+                        ytPlayer.playVideo();
+                    }
+                },
+
+                nextSong() {
+                    // Stop ad monitoring when skipping
+                    this.stopAdMonitoring();
+                    
+                    if (this.recommendations.length === 0) return;
+                    
+                    const currentIndex = this.recommendations.findIndex(r => 
+                        r.recommendation_id === this.currentSong?.recommendation_id
+                    );
+                    const nextIndex = (currentIndex + 1) % this.recommendations.length;
+                    this.playSong(this.recommendations[nextIndex]);
+                },
+
+                previousSong() {
+                    if (this.recommendations.length === 0) return;
+                    
+                    const currentIndex = this.recommendations.findIndex(r => 
+                        r.recommendation_id === this.currentSong?.recommendation_id
+                    );
+                    const prevIndex = currentIndex <= 0 ? this.recommendations.length - 1 : currentIndex - 1;
+                    this.playSong(this.recommendations[prevIndex]);
+                },
+
+                detectAndSkipAds() {
+                    // Enhanced ad detection and skipping
+                    if (!ytPlayer) return;
+                    
+                    try {
+                        const duration = ytPlayer.getDuration();
+                        const currentTime = ytPlayer.getCurrentTime();
+                        const videoData = ytPlayer.getVideoData ? ytPlayer.getVideoData() : null;
+                        
+                        // Method 1: Detect ads by duration (ads are typically 5-30 seconds)
+                        // But be careful - some songs are short too
+                        if (duration > 0 && duration <= 35 && currentTime < 10) {
+                            // Check if this is likely an ad (very short, just started)
+                            const isLikelyAd = duration <= 35 && currentTime < 5;
+                            
+                            if (isLikelyAd) {
+                                console.log(`Detected potential ad (${duration}s), attempting to skip...`);
+                                
+                                // Try to seek to end of ad
+                                try {
+                                    ytPlayer.seekTo(duration - 0.5, true);
+                                    console.log('Sought to end of ad');
+                                } catch (e) {
+                                    console.debug('Could not seek:', e);
+                                }
+                                
+                                // If still playing after 2 seconds, skip to next song
+                                setTimeout(() => {
+                                    if (ytPlayer && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+                                        const newTime = ytPlayer.getCurrentTime();
+                                        const newDuration = ytPlayer.getDuration();
+                                        
+                                        // If still a short video, it's likely an ad
+                                        if (newDuration <= 35 && newTime < newDuration - 1) {
+                                            console.log('Ad detected, skipping to next song');
+                                            this.nextSong();
+                                        }
+                                    }
+                                }, 2000);
+                            }
+                        }
+                        
+                        // Method 2: Detect ads by checking if video title/author suggests it's an ad
+                        if (videoData) {
+                            const title = (videoData.title || '').toLowerCase();
+                            const author = (videoData.author || '').toLowerCase();
+                            
+                            // Common ad indicators
+                            const adKeywords = ['advertisement', 'ad', 'sponsored', 'promo', 'commercial'];
+                            const isAdByTitle = adKeywords.some(keyword => title.includes(keyword));
+                            
+                            if (isAdByTitle && duration <= 60) {
+                                console.log('Ad detected by title, skipping...');
+                                this.nextSong();
+                                return;
+                            }
+                        }
+                        
+                        // Method 3: Monitor for sudden state changes that might indicate ads
+                        // This will be handled by the onStateChange handler
+                        
+                    } catch (e) {
+                        console.debug('Ad detection error:', e);
+                    }
+                },
+                
+                // Enhanced ad monitoring with interval
+                startAdMonitoring() {
+                    // Clear any existing interval
+                    if (this.adMonitoringInterval) {
+                        clearInterval(this.adMonitoringInterval);
+                    }
+                    
+                    // Monitor for ads every 500ms when playing
+                    this.adMonitoringInterval = setInterval(() => {
+                        if (this.playing && ytPlayer) {
+                            this.detectAndSkipAds();
+                        }
+                    }, 500);
+                },
+                
+                stopAdMonitoring() {
+                    if (this.adMonitoringInterval) {
+                        clearInterval(this.adMonitoringInterval);
+                        this.adMonitoringInterval = null;
+                    }
+                },
+
+                updateProgress() {
+                    if (!ytPlayer || !this.currentSong) return;
+                    
+                    try {
+                        this.currentTime = ytPlayer.getCurrentTime() || 0;
+                        this.duration = ytPlayer.getDuration() || 0;
+                        this.progressPercent = this.duration > 0 ? (this.currentTime / this.duration) * 100 : 0;
+                    } catch (e) {
+                        // Player might not be ready
+                    }
+                },
+
+                seekTo(event) {
+                    if (!ytPlayer || !this.currentSong) return;
+                    
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const percent = x / rect.width;
+                    const time = percent * this.duration;
+                    ytPlayer.seekTo(time, true);
+                },
+
+                formatTime(seconds) {
+                    if (!seconds || isNaN(seconds)) return '0:00';
+                    const mins = Math.floor(seconds / 60);
+                    const secs = Math.floor(seconds % 60);
+                    return `${mins}:${secs.toString().padStart(2, '0')}`;
+                },
+
+                async submitFeedback(type) {
+                    if (!this.currentSong) return;
+                    
+                    try {
+                        await fetch(`${API_BASE}/feedback`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                user_id: this.userId,
+                                recommendation_id: this.currentSong.recommendation_id,
+                                song_id: this.currentSong.song?.title || this.currentSong.recommendation_id,
+                                feedback_type: type,
+                                context: { time_of_day: this.getTimeOfDay() }
+                            })
+                        });
+                        
+                        // Track listening if liked
+                        if (type === 'like' && this.currentSong.song) {
+                            await fetch(`${API_BASE}/listening/track`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    user_id: this.userId,
+                                    song_title: this.currentSong.song.title,
+                                    artists: this.currentSong.song.artists || [],
+                                    source: 'recommendation',
+                                    platform: 'youtube',
+                                    metadata: {}
+                                })
+                            });
+                        }
+                        
+                        if (type === 'skip') {
+                            this.nextSong();
+                        }
+                    } catch (error) {
+                        console.error('Error submitting feedback:', error);
+                    }
+                },
+
+                getTimeOfDay() {
+                    const hour = new Date().getHours();
+                    if (hour < 12) return 'morning';
+                    if (hour < 17) return 'afternoon';
+                    if (hour < 21) return 'evening';
+                    return 'night';
+                },
+
+                syncCatState() {
+                    // Sync state with Alpine store for cat to react
+                    if (window.Alpine && window.Alpine.store) {
+                        try {
+                            window.Alpine.store('playApp', {
+                                playing: this.playing,
+                                currentSong: this.currentSong
+                            });
+                        } catch (e) {
+                            // Store might not be initialized yet
+                        }
+                    }
+                }
+            }
+        }
+
+        // Cat Emotion System
+        function catEmotion() {
+            return {
+                emotion: 'idle',  // Initialize with 'idle' to prevent undefined errors
+                catState: 'cat-idle',
+                speechVisible: false,
+                speechText: '',
+                lastSongTitle: '',
+                interactionCount: 0,
+                catX: 20,
+                catY: 20,
+                following: false,
+                mouseX: 0,
+                mouseY: 0,
+                isRolling: false,
+                isRollingAround: false,
+                isGlowing: false,
+                isBouncing: false,
+                isSpinning: false,
+                isDragging: false,
+                dragStartX: 0,
+                dragStartY: 0,
+                lastClickTime: 0,
+                autoRollInterval: null,
+                lastAnalysisTime: 0,
+                currentCatReaction: null,
+                emotionLockTime: null,
+                
+                init() {
+                    // Update emotion periodically and watch for changes
+                    const updateInterval = setInterval(() => {
+                        this.updateEmotion();
+                        this.checkForNewSong();
+                        this.updatePosition();
+                    }, 100);
+                    
+                    // Track mouse position globally
+                    document.addEventListener('mousemove', (e) => {
+                        this.mouseX = e.clientX;
+                        this.mouseY = e.clientY;
+                    });
+                    
+                    // Cleanup on component destroy
+                    this.$el.addEventListener('alpine:destroyed', () => {
+                        clearInterval(updateInterval);
+                    });
+                },
+                
+                handleMouseMove(event) {
+                    // Handle dragging
+                    if (this.isDragging) {
+                        const newX = window.innerWidth - (event.clientX - this.dragStartX + this.$el.offsetWidth);
+                        const newY = window.innerHeight - (event.clientY - this.dragStartY + this.$el.offsetHeight);
+                        this.catX = Math.max(0, Math.min(window.innerWidth - 180, newX));
+                        this.catY = Math.max(0, Math.min(window.innerHeight - 180, newY));
+                        return;
+                    }
+                    
+                    // Slight follow effect when mouse is near
+                    const rect = this.$el.getBoundingClientRect();
+                    const catCenterX = rect.left + rect.width / 2;
+                    const catCenterY = rect.top + rect.height / 2;
+                    const distance = Math.sqrt(
+                        Math.pow(event.clientX - catCenterX, 2) + 
+                        Math.pow(event.clientY - catCenterY, 2)
+                    );
+                    
+                    if (distance < 200) {
+                        this.following = true;
+                        const followStrength = 0.12;
+                        const deltaX = (event.clientX - catCenterX) * followStrength;
+                        const deltaY = (event.clientY - catCenterY) * followStrength;
+                        
+                        // Calculate new position from right and bottom
+                        const newRight = window.innerWidth - (rect.right - deltaX);
+                        const newBottom = window.innerHeight - (rect.bottom - deltaY);
+                        
+                        this.catX = Math.max(0, Math.min(window.innerWidth - 180, newRight));
+                        this.catY = Math.max(0, Math.min(window.innerHeight - 180, newBottom));
+                    } else {
+                        this.following = false;
+                    }
+                },
+                
+                updatePosition() {
+                    // Gentle drift when not following and not dragging
+                    if (!this.following && !this.isDragging) {
+                        // Return to default position slowly
+                        const targetX = 20;
+                        const targetY = 20;
+                        this.catX += (targetX - this.catX) * 0.05;
+                        this.catY += (targetY - this.catY) * 0.05;
+                    }
+                },
+                
+                async checkForNewSong() {
+                    const playApp = window.playAppInstance;
+                    if (playApp && playApp.currentSong) {
+                        const currentTitle = playApp.currentSong.song?.title || playApp.currentSong.title;
+                        if (currentTitle && currentTitle !== this.lastSongTitle) {
+                            this.lastSongTitle = currentTitle;
+                            
+                            // Analyze song with cat intelligence (LLM)
+                            await this.analyzeSongWithCat();
+                        }
+                    }
+                },
+                
+                async analyzeSongWithCat() {
+                    const playApp = window.playAppInstance;
+                    if (!playApp || !playApp.currentSong) return;
+                    
+                    try {
+                        const song = playApp.currentSong;
+                        const title = song.song?.title || song.title || '';
+                        const artists = song.song?.artists || song.artists || [];
+                        const genre = song.song?.genre || song.genre || [];
+                        
+                        if (!title) return;
+                        
+                        const artistsStr = Array.isArray(artists) ? artists.join(',') : artists;
+                        const genreStr = Array.isArray(genre) ? genre.join(',') : '';
+                        
+                        let url = `${API_BASE}/cat/analyze-song?title=${encodeURIComponent(title)}&artists=${encodeURIComponent(artistsStr)}`;
+                        if (genreStr) {
+                            url += `&genre=${encodeURIComponent(genreStr)}`;
+                        }
+                        
+                        const response = await fetch(url);
+                        const data = await response.json();
+                        
+                        if (data.status === 'success' && data.cat_reaction) {
+                            const reaction = data.cat_reaction;
+                            
+                            // Update cat's emotion based on LLM analysis
+                            const emotion = reaction.emotion || 'happy';
+                            const comment = reaction.comment || 'Meow! Interesting song!';
+                            const moodScore = reaction.mood_score || 0.5;
+                            const reactionType = reaction.reaction || 'dancing';
+                            
+                            // Store current reaction
+                            this.currentCatReaction = reaction;
+                            this.lastAnalysisTime = Date.now();
+                            
+                            // Set emotion based on LLM analysis
+                            this.setEmotionFromAnalysis(emotion, moodScore, reactionType);
+                            
+                            // Show intelligent comment
+                            this.showSpeech(comment, 5000);
+                            
+                            // Add visual effects based on mood
+                            if (moodScore > 0.7) {
+                                this.addGlow();
+                                this.createStars();
+                                this.createHearts();
+                            } else if (moodScore < 0.3) {
+                                // Sad/depressed - show sadness, no happy effects
+                                // Emotion already set to sad
+                            } else {
+                                // Neutral mood
+                                this.createSparkles();
+                            }
+                        } else {
+                            // Fallback if analysis fails
+                            this.setEmotion('excited', 2000);
+                            this.showSpeech('New song! 🎵', 2000);
+                        }
+                    } catch (error) {
+                        console.error('Error analyzing song with cat:', error);
+                        // Fallback
+                        this.setEmotion('excited', 2000);
+                        this.showSpeech('New song! 🎵', 2000);
+                    }
+                },
+                
+                setEmotionFromAnalysis(emotion, moodScore, reactionType) {
+                    // Map LLM emotions to cat states
+                    let catEmotion = 'happy';
+                    let duration = 8000; // Longer duration to keep emotion
+                    
+                    if (emotion === 'depressed' || (emotion === 'sad' && moodScore < 0.2)) {
+                        catEmotion = 'depressed';
+                        duration = 10000; // Stay depressed longer
+                    } else if (emotion === 'sad') {
+                        catEmotion = 'sad';
+                        duration = 8000; // Stay sad longer
+                    } else if (emotion === 'excited' || emotion === 'energetic') {
+                        catEmotion = 'excited';
+                        duration = 6000;
+                    } else if (emotion === 'calm' || emotion === 'peaceful') {
+                        catEmotion = 'happy';
+                        duration = 7000;
+                    } else if (emotion === 'happy' || emotion === 'romantic') {
+                        catEmotion = 'happy';
+                        duration = 6000;
+                    } else if (emotion === 'nostalgic') {
+                        catEmotion = 'happy';
+                        duration = 7000;
+                    }
+                    
+                    // Set the emotion with longer lock time
+                    this.setEmotion(catEmotion, duration);
+                    this.emotionLockTime = Date.now();
+                    
+                    // Add reaction-specific animations
+                    if (reactionType === 'rolling' && moodScore > 0.5) {
+                        setTimeout(() => {
+                            this.rollAround();
+                        }, 300);
+                    } else if (reactionType === 'sleeping' && moodScore < 0.4) {
+                        // Already handled by sad/depressed emotion
+                    } else if (reactionType === 'dancing' && moodScore > 0.6) {
+                        // Already handled by excited/happy
+                    }
+                },
+                
+                updateEmotion() {
+                    const playApp = window.playAppInstance;
+                    if (!playApp) return;
+                    
+                    // Don't override LLM-determined emotions too quickly
+                    // Only update if no recent analysis
+                    if (this.lastAnalysisTime && (Date.now() - this.lastAnalysisTime) < 5000) {
+                        return; // Keep LLM emotion for at least 5 seconds
+                    }
+                    
+                    if (playApp.playing) {
+                        // Dancing when music is playing
+                        this.setEmotion('dancing');
+                        // Auto-roll occasionally when music is playing
+                        if (!this.autoRollInterval && Math.random() < 0.01) {
+                            this.rollAround();
+                        }
+                    } else if (playApp.currentSong) {
+                        // Happy but paused
+                        this.setEmotion('happy');
+                    } else {
+                        // Sleeping when no song
+                        this.setEmotion('sleeping');
+                    }
+                },
+                
+                setEmotion(newEmotion, duration = null) {
+                    this.emotion = newEmotion;
+                    
+                    // Remove all emotion classes
+                    const classes = ['cat-idle', 'cat-dancing', 'cat-happy', 'cat-sad', 'cat-excited', 'cat-sleeping', 'cat-depressed', 'cat-playing', 'cat-listening'];
+                    classes.forEach(cls => {
+                        if (this.catState.includes(cls)) {
+                            this.catState = this.catState.replace(cls, '').trim();
+                        }
+                    });
+                    
+                    // Add new emotion class
+                    this.catState = `cat-${newEmotion}`;
+                    
+                    // Add playing class if music is playing
+                    if (window.playAppInstance?.playing) {
+                        this.catState += ' cat-playing cat-listening';
+                    }
+                    
+                    // Reset after duration if specified
+                    if (duration) {
+                        setTimeout(() => {
+                            this.updateEmotion();
+                        }, duration);
+                    }
+                },
+                
+                interactWithCat() {
+                    this.interactionCount++;
+                    const playApp = window.playAppInstance;
+                    
+                    // Check for double click
+                    const now = Date.now();
+                    if (now - this.lastClickTime < 300) {
+                        // Double click detected - roll!
+                        this.rollCat();
+                        this.lastClickTime = 0;
+                        return;
+                    }
+                    this.lastClickTime = now;
+                    
+                    const messages = [
+                        'Purr purr! 🐾',
+                        'Meow! Play me some music! 🎵',
+                        'I love this song! 💜',
+                        'Scratch my ears! 😸',
+                        'More music please! 🎶',
+                        'You\'re the best! ⭐',
+                        'This beat is purrfect! 🎵',
+                        'Keep the music coming! 🎧',
+                        'Double click to see me roll! 🎲',
+                        'I\'m having so much fun! 🎉',
+                        'Wheee! This is awesome! 🌟'
+                    ];
+                    
+                    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+                    this.showSpeech(randomMessage, 2000);
+                    
+                    // Set excited emotion briefly
+                    this.setEmotion('excited', 1500);
+                    
+                    // Add glow effect
+                    this.addGlow();
+                    
+                    // Create heart and star particles
+                    this.createHearts();
+                    this.createStars();
+                    this.createSparkles();
+                },
+                
+                rollCat() {
+                    if (this.isRolling) return;
+                    
+                    this.isRolling = true;
+                    this.showSpeech('Wheee! Rolling! 🎲', 2000);
+                    this.createStars();
+                    
+                    // Smooth transition
+                    this.$el.style.transition = 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
+                    
+                    setTimeout(() => {
+                        this.isRolling = false;
+                        this.$el.style.transition = '';
+                    }, 1500);
+                },
+                
+                rollAround() {
+                    if (this.isRollingAround) return;
+                    
+                    this.isRollingAround = true;
+                    this.showSpeech('Rolling around! 🎪', 3000);
+                    this.createSparkles();
+                    
+                    // Smooth transition
+                    this.$el.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                    
+                    setTimeout(() => {
+                        this.isRollingAround = false;
+                        this.$el.style.transition = '';
+                    }, 3000);
+                },
+                
+                addGlow() {
+                    this.isGlowing = true;
+                    setTimeout(() => {
+                        this.isGlowing = false;
+                    }, 2000);
+                },
+                
+                bounce() {
+                    this.isBouncing = true;
+                    setTimeout(() => {
+                        this.isBouncing = false;
+                    }, 600);
+                },
+                
+                spin() {
+                    this.isSpinning = true;
+                    setTimeout(() => {
+                        this.isSpinning = false;
+                    }, 800);
+                },
+                
+                startDrag(event) {
+                    if (event.button !== 0) return; // Only left mouse button
+                    this.isDragging = true;
+                    const rect = this.$el.getBoundingClientRect();
+                    this.dragStartX = event.clientX - rect.left;
+                    this.dragStartY = event.clientY - rect.top;
+                    this.$el.style.cursor = 'grabbing';
+                },
+                
+                stopDrag() {
+                    if (this.isDragging) {
+                        this.isDragging = false;
+                        this.$el.style.cursor = 'pointer';
+                        this.bounce();
+                    }
+                },
+                
+                createHearts() {
+                    const catContainer = this.$el;
+                    const heartEmojis = ['💜', '❤️', '💕', '💖', '💗'];
+                    for (let i = 0; i < 5; i++) {
+                        setTimeout(() => {
+                            const heart = document.createElement('div');
+                            heart.className = 'cat-heart';
+                            heart.textContent = heartEmojis[Math.floor(Math.random() * heartEmojis.length)];
+                            heart.style.left = `${50 + (Math.random() - 0.5) * 60}%`;
+                            heart.style.top = `${50 + (Math.random() - 0.5) * 60}%`;
+                            catContainer.appendChild(heart);
+                            
+                            setTimeout(() => heart.remove(), 1500);
+                        }, i * 150);
+                    }
+                },
+                
+                createStars() {
+                    const catContainer = this.$el;
+                    const starEmojis = ['⭐', '✨', '🌟', '💫'];
+                    for (let i = 0; i < 8; i++) {
+                        setTimeout(() => {
+                            const star = document.createElement('div');
+                            star.className = 'cat-star';
+                            star.textContent = starEmojis[Math.floor(Math.random() * starEmojis.length)];
+                            star.style.left = `${50 + (Math.random() - 0.5) * 80}%`;
+                            star.style.top = `${50 + (Math.random() - 0.5) * 80}%`;
+                            catContainer.appendChild(star);
+                            
+                            setTimeout(() => star.remove(), 2000);
+                        }, i * 100);
+                    }
+                },
+                
+                createSparkles() {
+                    const catContainer = this.$el;
+                    for (let i = 0; i < 12; i++) {
+                        setTimeout(() => {
+                            const sparkle = document.createElement('div');
+                            sparkle.className = 'cat-sparkle';
+                            sparkle.style.left = `${Math.random() * 100}%`;
+                            sparkle.style.top = `${Math.random() * 100}%`;
+                            sparkle.style.animationDelay = `${Math.random() * 0.6}s`;
+                            catContainer.appendChild(sparkle);
+                            
+                            setTimeout(() => sparkle.remove(), 1000);
+                        }, i * 50);
+                    }
+                },
+                
+                showSpeech(text, duration = 3000) {
+                    this.speechText = text;
+                    this.speechVisible = true;
+                    
+                    if (duration) {
+                        setTimeout(() => {
+                            this.hideSpeech();
+                        }, duration);
+                    }
+                },
+                
+                hideSpeech() {
+                    this.speechVisible = false;
+                }
+            }
+        }
+
+    </script>
+</body>
+</html>
